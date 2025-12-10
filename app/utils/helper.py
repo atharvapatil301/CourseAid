@@ -22,7 +22,7 @@ def login_required(f):
 def execute_qry(sql_cmd, params):
     """
     This method is a helper function that helps execute a sql command with indicated parameters. 
-    Can be used for insert, read, update, and delete queries 
+    Can be used for insert, read, update, and delete assistant_queries
     """
     conn = db_connection.connect()
     cur = conn.cursor()
@@ -59,12 +59,10 @@ def validate_instructor(cursor, instructor_name):
     instructor_last = instructor_name.split(" ")[-1]
 
     check_query = queries["validate_instructor_query"]
-    cursor.execute(check_query)
+    cursor.execute(check_query, [instructor_first, instructor_last])
     valid_instructors = cursor.fetchall()
-    for valid_instructor in valid_instructors:
-        if (instructor_first.lower() == valid_instructor[0].lower() and
-            instructor_last.lower() == valid_instructor[1].lower()):
-            return valid_instructor[0], valid_instructor[1]
+    if valid_instructors:
+        return valid_instructors[0][0], valid_instructors[0][1]
 
     return None
 
@@ -130,7 +128,9 @@ def update_summary_cache(instructor_first, instructor_last):
 
 
 class IntentClassifier:
-
+    """
+        Helper class to call the right context builder based on the intent of user query.
+    """
 
     @staticmethod
     def classify(user_query: str) -> str:

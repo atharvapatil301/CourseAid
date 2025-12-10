@@ -3,7 +3,6 @@ from flask import request, jsonify, render_template
 from ..models.assistant import AssistantRoles
 import asyncio
 from ..utils.helper import IntentClassifier
-import re
 
 
 assistant_roles = AssistantRoles()

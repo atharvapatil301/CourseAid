@@ -5,6 +5,11 @@ with open("./app/utils/user_queries.json", "r") as file:
 
 class Users:
 
+    """
+        Model class to check existence of users and inserting new users into the database.
+
+    """
+
     @staticmethod
     def insert_new_user(username, hashed_pw, school_year, cursor):
         cursor.execute(

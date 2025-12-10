@@ -1,5 +1,5 @@
 {
-  "validate_instructor_query": "select first_name, last_name \n                  from instructors",
+  "validate_instructor_query": "select first_name, last_name \n                  from instructors where first_name=%s and last_name=%s",
   "check_summary_query": "select check_for_summary( %s, %s, %s)"
 
 }

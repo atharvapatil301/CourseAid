@@ -1,8 +1,11 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel
+from typing import List
 
 
 class CourseContext(BaseModel):
+    """
+        Class to build context to represent a single course.
+    """
     course_code: str
     course_desc: str
 
@@ -12,6 +15,9 @@ class CourseContext(BaseModel):
 
 
 class ReviewContext(BaseModel):
+    """
+       Class to build context to represent a single review.
+    """
     professor_fname: str
     professor_lname: str
     course_code: str
@@ -23,13 +29,18 @@ class ReviewContext(BaseModel):
 
 
 class ProfessorComparisonContext(BaseModel):
+    """
+        Class to build context for comparison between two professors.
+    """
 
     professor1_fname: str
     professor1_lname: str
-    professor1_reviews: List[ReviewContext] = Field(max_items=20)
+    professor1_courses: List[CourseContext]
+    professor1_reviews: List[ReviewContext]
     professor2_fname: str
     professor2_lname: str
-    professor2_reviews: List[ReviewContext] = Field(max_items=20)
+    professor2_courses: List[CourseContext]
+    professor2_reviews: List[ReviewContext]
 
     def format_for_llm(self) -> str:
 
@@ -37,16 +48,26 @@ class ProfessorComparisonContext(BaseModel):
         context += "Reviews:\n"
         for review in self.professor1_reviews:
             context += f"  - {review.format()}\n"
+        context += "Current courses taught by professor:\n"
+        for course in self.professor1_courses:
+            context += f"  - {course.format()}\n"
+
 
         context += f"\nPROFESSOR 2: {self.professor2_fname} {self.professor2_lname}\n"
         context += "Reviews:\n"
         for review in self.professor2_reviews:
             context += f"  - {review.format()}\n"
+        context += "Current courses taught by professor:\n"
+        for course in self.professor2_courses:
+            context += f"  - {course.format()}\n"
 
         return context
 
 
 class CourseRecommendationContext(BaseModel):
+    """
+        Class to build context for recommending courses based on user preferences.
+    """
 
     user_preferences: str
     matching_courses: List[CourseContext]
@@ -61,6 +82,9 @@ class CourseRecommendationContext(BaseModel):
 
 
 class MiscellaneousInfoContext(BaseModel):
+    """
+        Class to build context for answering miscellaneous questions using relevant reviews and courses.
+    """
     question: str
     relevant_courses: List[CourseContext]
     relevant_reviews: List[ReviewContext]

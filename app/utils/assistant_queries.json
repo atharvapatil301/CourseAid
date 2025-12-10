@@ -4,6 +4,7 @@
 
   "curriculum_query": "select c.course_number, c.course_description from course_embeddings as ce join courses as c on ce.course_id = c.course_number order by ce.embedding <=> %s::vector LIMIT 10",
 
-  "prof_comparison_query": "SELECT r.instructor_first,\n                                  r.instructor_last,\n                                  r.course_number,\n                                  r.comment\n                           FROM review r\n                           WHERE r.instructor_first = %s\n                             AND r.instructor_last = %s\n                           ORDER BY r.last_updated DESC limit 20"
+  "prof_all_reviews_query": "SELECT r.instructor_first,\n                                  r.instructor_last,\n                                  r.course_number,\n                                  r.comment\n                           FROM review r\n                           WHERE r.instructor_first = %s\n                             AND r.instructor_last = %s\n                           ORDER BY r.last_updated DESC limit 20",
 
+  "prof_course_info_query": "select s.course_number, c.course_description from \n\tcourse_section as s join courses as c on\n\t\ts.course_number=c.course_number where\n\t\t\ts.instructor_first= %s and s.instructor_last= %s "
 }

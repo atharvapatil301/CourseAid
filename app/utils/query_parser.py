@@ -7,11 +7,11 @@ def extract_courses_from_user_query(query:str):
 
 def extract_two_prof_names(text: str):
 
-    pattern = r'([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(?:and|&)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)'
+    pattern = r'([A-Za-z]+\s+[A-Za-z]+)\s+(?:and|&)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)'
     match = re.search(pattern, text, re.IGNORECASE)
 
     if match:
-        return [match.group(1), match.group(2)]
+        return [match.group(1).strip(), match.group(2).strip()]
 
     return None
 

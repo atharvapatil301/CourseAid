@@ -6,7 +6,6 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 def register():
 
-
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -39,6 +38,8 @@ def register():
 
         flash(error)
         cursor.close()
+
+    return render_template('auth/register.html')
 
 
 def login():

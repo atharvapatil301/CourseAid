@@ -6,7 +6,7 @@ from google.genai import types
 from ..models.intructors import Instructor
 from ..config.db_connection import connect
 from ..utils.helper import validate_instructor
-from ..utils.query_parser import extract_courses_from_user_query, extract_two_prof_names
+from ..utils.query_parser import  extract_two_prof_names
 from sentence_transformers import SentenceTransformer
 from ..models.context_pydantic import CourseContext, CourseRecommendationContext, ProfessorComparisonContext, ReviewContext, MiscellaneousInfoContext
 from dotenv import load_dotenv
@@ -14,12 +14,22 @@ import json
 
 
 class AssistantRoles:
+    """
+        Model class to carry out all AI assistant related functionality by
+            fetching relevant information from the database.
+
+        Functionality includes:
+            Generating consensus summary
+            Recommending curriculum based on user preferences
+            Answering miscellaneous questions
+            Comparing two professors
+    """
 
     def __init__(self):
         load_dotenv()
         self.conn = connect()
         with open("./app/utils/assistant_queries.json", "r") as file:
-            self.queries = json.load(file)
+            self.assistant_queries = json.load(file)
 
         with open("./app/utils/prompts.json", "r") as file:
             self.prompts = json.load(file)
@@ -34,7 +44,7 @@ class AssistantRoles:
         query_embedding = self.embedding_model.encode_query(user_query)
         cursor = self.conn.cursor()
         try:
-            cursor.execute(self.queries["relevant_reviews_query"], ((query_embedding.tolist(),)))
+            cursor.execute(self.assistant_queries["relevant_reviews_query"], ((query_embedding.tolist(),)))
 
             return cursor.fetchall()
         except psycopg2.ProgrammingError as e:
@@ -47,7 +57,7 @@ class AssistantRoles:
         query_embedding = self.embedding_model.encode_query(user_query)
 
 
-        query = self.queries["curriculum_query"]
+        query = self.assistant_queries["curriculum_query"]
         try:
             cursor.execute(query, (query_embedding.tolist(),))
             courses = cursor.fetchall()
@@ -56,19 +66,28 @@ class AssistantRoles:
             print(f"Error: {e}")
             return None
 
-    def get_database_results_for_profcomparison(self, cursor, prof1_fname:str, prof2_fname:str, prof1_lname:str, prof2_lname:str):
+    def get_database_results_for_profcomparison(self, cursor, prof1_fname:str, prof1_lname:str, prof2_fname:str, prof2_lname:str):
 
 
         try:
-            cursor.execute(self.queries["prof_comparison_query"], (prof1_fname, prof1_lname))
+            cursor.execute(self.assistant_queries["prof_all_reviews_query"], (prof1_fname, prof1_lname))
 
             prof1_review_rows = cursor.fetchall()
 
-            cursor.execute(self.queries["prof_comparison_query"], (prof2_fname, prof2_lname))
+            cursor.execute(self.assistant_queries["prof_course_info_query"], (prof1_fname, prof1_lname))
 
+            prof1_courses = cursor.fetchall()
+
+
+            cursor.execute(self.assistant_queries["prof_all_reviews_query"], (prof2_fname, prof2_lname))
             prof2_review_rows = cursor.fetchall()
 
-            return prof1_review_rows, prof2_review_rows
+            cursor.execute(self.assistant_queries["prof_course_info_query"], (prof2_fname, prof2_lname))
+            prof2_courses = cursor.fetchall()
+
+
+            return prof1_review_rows, prof1_courses, prof2_review_rows, prof2_courses
+
         except psycopg2.ProgrammingError as e:
             cursor.close()
             print(f"error: {e}")
@@ -113,7 +132,7 @@ class AssistantRoles:
             result = await self.chat(messages)
             return result
 
-    async def process_all_instructors(self,rows):
+    async def generate_summary_for_all_instructors(self,rows):
         results = []
         for row in tqdm(rows, total=len(rows)):
             result = await self.generate_consensus_summary(row[0], row[1])
@@ -200,16 +219,45 @@ class AssistantRoles:
     async def compare_two_professors(self, cursor, user_query: str):
 
         prof_names = extract_two_prof_names(user_query)
+        print(prof_names)
 
-        prof1_fname, prof1_lname = validate_instructor(cursor, prof_names[0])
-        prof2_fname, prof2_lname = validate_instructor(cursor, prof_names[1])
-
+        prof1_fname, prof1_lname = validate_instructor(cursor, prof_names[0].title())
+        prof2_fname, prof2_lname = validate_instructor(cursor, prof_names[1].title())
 
         print(prof1_fname, prof1_lname)
-
         print(prof2_fname, prof2_lname)
 
-        prof1_review_rows, prof2_review_rows = self.get_database_results_for_profcomparison(cursor, prof1_fname, prof1_lname, prof2_fname, prof2_lname)
+
+        prof1_review_rows, prof1_courses, prof2_review_rows, prof2_courses = self.get_database_results_for_profcomparison(cursor, prof1_fname, prof1_lname, prof2_fname, prof2_lname)
+
+
+        if not prof1_courses:
+            message = "no courses found for this professor"
+            prof1_course_context = [CourseContext(
+                course_code=message,
+                course_desc=message,
+            )]
+        else:
+
+            prof1_course_context = [CourseContext(
+                course_code=course[0],
+                course_desc=course[1],
+            ) for course in prof1_courses]
+
+
+        if not prof2_courses:
+            message = "no courses found for this professor"
+            prof2_course_context = [CourseContext(
+                course_code=message,
+                course_desc=message,
+            )]
+        else:
+
+            prof2_course_context = [CourseContext(
+                course_code=course[0],
+                course_desc=course[1],
+            ) for course in prof2_courses]
+
         if not prof1_review_rows:
             prof1_reviews = [
                 ReviewContext(
@@ -253,10 +301,12 @@ class AssistantRoles:
         context = ProfessorComparisonContext(
             professor1_fname=prof1_fname,
             professor2_fname=prof2_fname,
+            professor1_courses=prof1_course_context,
             professor1_lname=prof1_lname,
             professor2_lname=prof2_lname,
             professor1_reviews=prof1_reviews,
-            professor2_reviews=prof2_reviews
+            professor2_reviews=prof2_reviews,
+            professor2_courses=prof2_course_context
         )
 
         formatted_context = context.format_for_llm()

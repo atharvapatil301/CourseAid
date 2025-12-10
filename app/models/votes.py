@@ -4,6 +4,9 @@ with open("./app/utils/vote_queries.json", "r") as file:
     queries = json.load(file)
 
 class Votes:
+    """
+        Model class to handle CRUD operations on the "votes" relation.
+    """
 
     @staticmethod
     def create_vote(cursor, review_id, username, vote_type):

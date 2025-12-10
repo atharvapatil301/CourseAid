@@ -22,7 +22,7 @@ def connect():
         )
         cursor = connection.cursor()
 
-        #execute queries with cursor
+        #execute assistant_queries with cursor
         cursor.execute('SELECT version();')
         db_version = cursor.fetchone()
         print(db_version)

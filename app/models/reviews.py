@@ -9,6 +9,11 @@ with open("./app/utils/review_queries.json", "r") as file:
 
 #---- review class ----#
 class Reviews:
+    """
+        Model class to fetch relevant Reviews information from the database and carry out CRUD operations
+            on the "review" relation
+
+    """
     def __init__(self, comment: str, instructor_first: str, instructor_last: str, course_num:str, username= str, rating = int, id= None):
         self.comment = comment
         self.instructor_first = instructor_first

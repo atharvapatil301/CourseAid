@@ -6,6 +6,9 @@ with open("./app/utils/instructor_queries.json") as json_file:
     queries = json.load(json_file)
 
 class Instructor:
+    """
+        Model class to fetch relevant Instructor information from the database
+    """
 
     @staticmethod
     def get_average_rating(cursor, instructor_name):
