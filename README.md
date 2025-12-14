@@ -1,10 +1,10 @@
-# CourseAid - Database Management Systems Project
+# CourseAid - A better RateMyProfessor
 
 ## Introduction
 
-Course selection can often feel overwhelming. As master's students, we frequently spend a lot of time researching and comparing courses to determine which ones will best enhance our learning experience. While platforms like Rate My Professor are commonly used to gather insights, they are primarily designed for searching specific professors rather than exploring courses holistically. The existing navigation and filters are also limited, making it difficult to obtain comprehensive and comparative information for students.
+Course selection can often feel overwhelming. As a master's student, I frequently spend a lot of time researching and comparing courses to determine which ones will best enhance our learning experience. While platforms like Rate My Professor are commonly used to gather insights, they are primarily designed for searching specific professors rather than exploring courses holistically. The existing navigation and filters are also limited, making it difficult to obtain comprehensive and comparative information for students.
 
-Our project aims to create a centralized hub for all course-related information. This application integrates objective course descriptions, student reviews, and perceptions of course difficulty based on the professor teaching the course. Additionally, it features robust filtering and search capabilities, enabling students to make more informed decisions when planning their academic paths.
+This project aims to create a centralized hub for all course-related information. This application integrates objective course descriptions, student reviews, and perceptions of course difficulty based on the professor teaching the course. Additionally, it features robust filtering and search capabilities, enabling students to make more informed decisions when planning their academic paths.
 
 ## Technical Specifications
 
@@ -41,9 +41,12 @@ The data is synthetically generated. All professors, courses, reviews and users 
 
 ### Database Conceptual Design
 
+<img width="1070" height="943" alt="Image" src="https://github.com/user-attachments/assets/8f9a089b-969e-4c33-9c0b-3fcf8deb0811" />
 
 
 ### Database Logical Design
+
+<img width="843" height="770" alt="Image" src="https://github.com/user-attachments/assets/eb6e93dd-0f7a-4644-bafc-9513501f8fdd" />
 
 
 
@@ -127,29 +130,41 @@ The application will start and be accessible at: **http://localhost:5000** (or t
 ### Login and Register
 This is the login and register page for a returning or a new user.
 
+<img width="1512" height="963" alt="Image" src="https://github.com/user-attachments/assets/ec739fb1-791a-46a5-9131-a94c04ba7e9c" />
+
+<img width="1512" height="942" alt="Image" src="https://github.com/user-attachments/assets/42c2daf5-12a8-4e65-a6dd-2c461ac857a1" />
+
+
 
 ### Home Page
 You can search by professor's name or course number. You can also select any departments as to filter from.
+
+<img width="1512" height="944" alt="Image" src="https://github.com/user-attachments/assets/cfc6d3b9-393f-4df5-b26c-eb029e4ab104" />
 
 
 ### Instructor profile
 The profile shows instructor details along with the courses and departments that they are in. The instructor details contains a unique feature called consensus summary which is the summary of all the reviews of the instructor thus far and is updated every 20 reviews for that instructor.
 This is followed by reviews of the instructor by other students. Here the user can upvote or downvote on a review.
 
+<img width="1512" height="945" alt="Image" src="https://github.com/user-attachments/assets/66cd855f-49e3-4bb0-bbc4-9e304281f561" />
+
 
 ## Instructor review from
 This where the user can upload a new review
 
+<img width="1511" height="945" alt="Image" src="https://github.com/user-attachments/assets/97d201c7-93b0-47df-ae35-5f72586a5712" />
 
 ## User's past reviews
 Here the user can view all their past reviews and choose to either edit or delete their review.
+
+<img width="1512" height="945" alt="Image" src="https://github.com/user-attachments/assets/b8db0698-1b83-4713-a1eb-ea7c80c1dcda" />
 
 
 ## Course Assistant
 This is the AI assistant which runs using the RAG setup.
 First, the intent from user query is identified after which the call goes to the right context builder whichbuilds relevant context by pulling data from database based on course_description embeddings and review embeddings.
 
-
+<img width="1512" height="944" alt="Image" src="https://github.com/user-attachments/assets/f33c9766-e62e-44f5-b0a5-9402f89c489a" />
 
 
 
