@@ -1,3 +1,13 @@
+---
+title: CourseAid
+emoji: 🎓
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # CourseAid - A better RateMyProfessor
 
 ## Introduction
