@@ -1,7 +1,7 @@
 import json
 import os
 
-from course_aid.app.config import db_connection
+from app.config import db_connection
 
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer

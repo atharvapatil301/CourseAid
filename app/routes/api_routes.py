@@ -1,10 +1,12 @@
-from .. import app, conn
 from ..controllers import vote_controller, review_controller, assistant_controller, index_controller
 from ..utils.helper import login_required, execute_qry
 from flask import (g, session)
 
 
-from  .. import app, conn
+from .. import app
+from app.config.db_connection import connect
+
+conn = connect()
 
 
 #---- Reviews forms ----#
