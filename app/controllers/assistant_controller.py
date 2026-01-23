@@ -78,6 +78,11 @@ def answer_question(conn):
             'details': str(e)
         }), 500
 
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 
 
