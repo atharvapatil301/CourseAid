@@ -176,7 +176,13 @@ First, the intent from user query is identified after which the call goes to the
 
 <img width="1512" height="944" alt="Image" src="https://github.com/user-attachments/assets/f33c9766-e62e-44f5-b0a5-9402f89c489a" />
 
+### Assistant responses (pulled from exisiting database context). You are welcome to go through some of the professor profiles and try out the assistant!
 
+<img width="1920" height="1077" alt="Image" src="https://github.com/user-attachments/assets/f679075a-fb95-4e34-bf14-c1189e387a39" />
+
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/790197d0-8332-412e-9285-641b0350a931" />
+
+<img width="1916" height="1076" alt="Image" src="https://github.com/user-attachments/assets/1fd54917-333b-4e9d-a2a1-ac62849692c8" />
 
 ## Troubleshooting
 
