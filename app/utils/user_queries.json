@@ -1,4 +1,4 @@
 {
-  "insert_user_query": "INSERT INTO users (username, password, school_year) VALUES (%s, %s, %s)",
-  "check_user_query": "SELECT * FROM users WHERE username = %s"
+  "insert_user_query": "INSERT INTO public.users (username, password, school_year) VALUES (%s, %s, %s)",
+  "check_user_query": "SELECT * FROM public.users WHERE username = %s"
 }

@@ -3,8 +3,11 @@ from flask import Flask
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
+from huggingface_hub import login
+
 
 load_dotenv()
+
 
 app = Flask(
     __name__,
@@ -32,3 +35,5 @@ from .middleware.auth import auth
 app.register_blueprint(auth)
 
 from .routes import api_routes
+
+# login(token=os.getenv("HUGGINGFACE_HUB_TOKEN"))

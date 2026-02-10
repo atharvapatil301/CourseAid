@@ -3,7 +3,7 @@
   "count_votes_query": "SELECT (SELECT COUNT(*) FROM votes WHERE review_id = %s AND vote_type = 1)  as upvotes, \n                             (SELECT COUNT(*) FROM votes WHERE review_id = %s AND vote_type = -1) as downvotes",
   "update_voteid_query": "SELECT setval(pg_get_serial_sequence('votes', 'vote_id'),\n                                     COALESCE((SELECT MAX(vote_id) FROM votes), 0) + 1,\n                                     false)",
   "check_vote_query": "SELECT vote_id, vote_type\n                      FROM votes\n                      WHERE review_id = %s\n                        AND username = %s",
-  "update_vote_query": "SELECT vote_id, vote_type\n                      FROM votes\n                      WHERE review_id = %s\n                        AND username = %s",
+  "update_vote_query": "UPDATE votes\n                      SET vote_type = %s\n                      WHERE vote_id = %s",
   "delete_vote_query": " DELETE \n                       FROM votes\n                       WHERE vote_id = %s "
 
 }

@@ -1,16 +1,15 @@
 import psycopg2
-import os
 from tqdm import tqdm
-from google import genai
-from google.genai import types
 from ..models.intructors import Instructor
 from ..config.db_connection import connect
 from ..utils.helper import validate_instructor
 from ..utils.query_parser import  extract_two_prof_names
 from sentence_transformers import SentenceTransformer
 from ..models.context_pydantic import CourseContext, CourseRecommendationContext, ProfessorComparisonContext, ReviewContext, MiscellaneousInfoContext
+from transformers import pipeline
 from dotenv import load_dotenv
 import json
+import re
 
 
 class AssistantRoles:
@@ -32,12 +31,19 @@ class AssistantRoles:
 
         with open("./app/utils/prompts.json", "r") as file:
             self.prompts = json.load(file)
-
-        self.model='gemini-2.5-flash'
+        self.model_id="meta-llama/Llama-3.2-1B-Instruct"
         self.system_prompt=self.prompts["system_prompt"]
-
         self.embedding_model = SentenceTransformer("google/embeddinggemma-300m")
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        self.pipe = pipeline(
+                "text-generation",
+                model=self.model_id,
+                dtype="auto",
+                device_map="auto",
+                )
+        self.messages =[
+            {"role": "system", "content": self.system_prompt}
+        ]
+
 
     def get_database_results_for_relevant_reviews(self, cursor, user_query:str):
         query_embedding = self.embedding_model.encode_query(user_query)
@@ -96,18 +102,26 @@ class AssistantRoles:
     async def chat(self, messages: list[str]):
 
 
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=messages,
-            config=types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(thinking_budget=0) ,
-                temperature=0.1,
-                system_instruction=self.system_prompt
-
-            )
+        self.messages.append(
+            {"role": "user", "content": ("\n".join(messages))},
         )
 
-        return response.text
+        outputs = self.pipe(
+            messages,
+            max_new_tokens=900,
+            temperature=0.1,
+            return_full_text=False,
+        )
+
+        assistant_reply = outputs[0][-1]["generated_text"].strip()
+        assistant_reply = re.sub(r'\*\*', '', assistant_reply)
+        assistant_reply = re.sub(r'\*', '', assistant_reply)
+
+        self.messages.append(
+            {"role": "assistant", "content": assistant_reply},
+        )
+        print(assistant_reply)
+        return assistant_reply
 
     def create_summary_prompt(self, contents: list[str]):
         messages = []
