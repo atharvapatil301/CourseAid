@@ -1,3 +1,4 @@
+import os
 from flask import request, jsonify, render_template
 from ..models.assistant import AssistantRoles
 import asyncio
