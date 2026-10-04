@@ -1,0 +1,833 @@
+/COURSEAID PROJECT STRUCTURE
+============================
+
+CourseAid is a full-stack web application built with Flask that serves as a better alternative
+to RateMyProfessor. It provides comprehensive course and instructor information with AI-powered
+recommendations using RAG (Retrieval-Augmented Generation) architecture.
+
+ROOT LEVEL FILES
+================
+
+├── run.py
+│   Main entry point for the Flask application. Imports the Flask app instance from the
+│   app package and runs the development server on host 0.0.0.0:7860 with debug mode disabled.
+│
+├── requirements.txt
+│   Lists all Python dependencies required for the project including:
+│   - Flask & flask-cors: Web framework and CORS handling
+│   - psycopg2-binary & pgvector: PostgreSQL database connectivity and vector operations
+│   - torch, transformers, sentence-transformers: Machine learning and NLP models
+│   - huggingface-hub: Access to Hugging Face models
+│   - pydantic: Data validation
+│   - python-dotenv: Environment variable management
+│
+├── Dockerfile
+│   Docker container configuration for deploying the application. Uses Python 3.11-slim base
+│   image, installs dependencies from requirements.txt, exposes port 7860, and runs the
+│   application using run.py.
+│
+├── README.md
+│   Comprehensive project documentation including:
+│   - Project introduction and technical specifications
+│   - Architecture overview (Flask backend, PostgreSQL with pgvector, Gemma embeddings)
+│   - Database design (11 tables with conceptual and logical diagrams)
+│   - Installation and setup instructions
+│   - Feature walkthrough with screenshots
+│   - Troubleshooting guide
+│   - Future work and planned enhancements
+│
+├── .env
+│   Environment variables file containing sensitive configuration (git-ignored):
+│   - Database credentials (DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT)
+│   - Secret key for Flask sessions
+│   - API tokens (HF_TOKEN for Hugging Face, GEMINI_API_KEY)
+│
+├── .env.example
+│   Template file showing required environment variables without actual sensitive values.
+│   Used as a reference for setting up the .env file.
+│
+├── .flaskenv
+│   Flask-specific environment configuration, typically contains FLASK_APP and FLASK_ENV
+│   settings for Flask CLI commands.
+│
+├── .samplenv / sample.env
+│   Sample environment file (duplicate), provides example format for environment variables.
+│
+├── directory.txt
+│   Previously created directory structure documentation (likely outdated compared to this file).
+│
+├── vercel.json
+│   Configuration file for Vercel deployment platform, contains deployment settings and
+│   routing rules for hosting the application on Vercel.
+│
+
+APP DIRECTORY (./app/)
+======================
+
+The main application package containing all the application code organized in MVC pattern.
+
+├── app/__init__.py
+│   Application factory and initialization module. Key responsibilities:
+│   - Creates Flask application instance with template and static folder configuration
+│   - Loads environment variables using dotenv
+│   - Configures session cookies (SECURE, HTTPONLY, SAMESITE settings)
+│   - Sets up CORS with credentials support for Hugging Face spaces
+│   - Applies ProxyFix middleware for proper header handling
+│   - Registers authentication blueprint
+│   - Imports and registers API routes
+│   - Contains commented Hugging Face login initialization
+
+
+CONFIG SUBDIRECTORY (./app/config/)
+====================================
+
+├── app/config/__init__.py
+│   Package initialization file for the config module.
+│
+├── app/config/db_connection.py
+│   Database connection management module. Provides:
+│   - connect(): Establishes PostgreSQL connection using credentials from environment variables
+│   - close(): Closes active database connections
+│   - Prints database version upon successful connection
+│   - Handles connection errors with psycopg2.Error exceptions
+│
+├── app/config/PopulateDB.py
+│   Database population script for initial data seeding. Contains populateDB class with methods:
+│   - populateCoursesTable(): Inserts course data (course_number, course_description)
+│   - populateDepartmentsTable(): Inserts department names
+│   - populateInstructorsTable(): Inserts instructor names (first_name, last_name)
+│   - populateUsersTable(): Inserts user data (username, password, school_year)
+│   - populateReviewsTable(): Inserts review data from JSON files in batches
+│   - populateCourseEmbeddingsTable(): Generates and stores course description embeddings
+│     using Gemma model
+│   - populateReviewEmbeddingsTable(): Generates and stores review comment embeddings
+│   - populateVotesTable(): Inserts vote data from JSON files
+│   - populateCourseSectionTable(): Maps courses to instructors
+│   - populateCourseToDepartmentTable(): Maps courses to departments
+│   - populateInstructorToDepartmentTable(): Maps instructors to departments
+│   - populateUserToCourseTable(): Maps users to enrolled courses
+│   Uses tqdm for progress bars and SentenceTransformer for embedding generation.
+
+
+CONTROLLERS SUBDIRECTORY (./app/controllers/)
+==============================================
+
+Contains controller modules that handle request/response logic for different features.
+
+├── app/controllers/__init__.py
+│   Package initialization file for controllers module.
+│
+├── app/controllers/assistant_controller.py
+│   Handles AI assistant functionality using RAG architecture:
+│   - get_assistant(): Renders the assistant.html template
+│   - answer_question(conn): Processes user queries through the AI assistant
+│     * Extracts user message from request JSON
+│     * Determines query intent (compare, curriculum, qna) using IntentClassifier
+│     * Accepts optional intent_hint from frontend
+│     * Routes query to appropriate AssistantRoles method based on intent
+│     * Returns AI-generated responses as JSON
+│
+├── app/controllers/index_controller.py
+│   Manages home page and search functionality:
+│   - index(): Renders the main landing page
+│   - search_page(): Renders the search interface
+│   - search(): Processes search queries for professors/courses
+│     * Supports filtering by department
+│     * Handles professor name and course number searches
+│     * Returns search results for display
+│
+├── app/controllers/review_controller.py
+│   Handles all review-related operations:
+│   - get_user_reviews(conn): Fetches all reviews created by the logged-in user
+│   - get_reviews_for_instructor(conn, instructor_name): Retrieves reviews for a specific
+│     instructor with validation
+│     * Validates instructor existence
+│     * Fetches instructor details and associated courses/departments
+│     * Retrieves consensus summary (cached summary of all reviews)
+│     * Updates summary cache if needed (every 20 new reviews)
+│     * Fetches vote information for each review
+│     * Returns rendered professor_reviews.html template
+│   - review_form(instructor_first, instructor_last): Handles GET/POST for review submission
+│     * GET: Renders review form with course selection dropdown
+│     * POST: Validates and inserts new review with embeddings
+│   - view_reviews(): Displays all reviews (testing endpoint)
+│   - edit_review(review_id, conn): Updates existing review via PATCH/PUT request
+│   - delete_review(review_id, conn): Deletes review via DELETE request
+│
+├── app/controllers/user_controller.py
+│   Manages user authentication and registration:
+│   - register(): Handles user registration (GET shows form, POST creates account)
+│     * Validates username uniqueness
+│     * Hashes passwords using werkzeug.security
+│     * Inserts new user into database
+│   - login(): Handles user login (GET shows form, POST authenticates)
+│     * Validates credentials
+│     * Creates user session on successful login
+│     * Redirects to index page
+│
+├── app/controllers/vote_controller.py
+│   Manages voting on reviews:
+│   - handle_votes(conn, review_id): Processes upvote/downvote actions
+│     * Accepts vote_type from request body ('upvote' or 'downvote')
+│     * Checks for existing vote by user on the review
+│     * Creates new vote or updates/deletes existing vote
+│     * Returns updated vote counts as JSON
+
+
+MIDDLEWARE SUBDIRECTORY (./app/middleware/)
+============================================
+
+├── app/middleware/__init__.py
+│   Package initialization file for middleware module.
+│
+├── app/middleware/auth.py
+│   Authentication middleware using Flask Blueprint:
+│   - Registers 'auth' blueprint with /auth URL prefix
+│   - /auth/register: Calls user_controller.register() for user registration
+│   - /auth/login: Calls user_controller.login() for user authentication
+│   - /auth/logout: Clears session and redirects to index page
+
+
+MODELS SUBDIRECTORY (./app/models/)
+====================================
+
+Contains data models and business logic classes.
+
+├── app/models/__init__.py
+│   Package initialization file for models module.
+│
+├── app/models/assistant.py
+│   Core AI assistant model using RAG (Retrieval-Augmented Generation):
+│   - AssistantRoles class with methods:
+│     * __init__(): Initializes TinyLlama model, Gemma embeddings, tokenizer, prompts
+│     * generate_consensus_summary(): Creates AI-generated summary of all instructor reviews
+│     * build_curriculum_context(): Retrieves relevant courses based on field/interest using
+│       semantic search on course description embeddings
+│     * build_qna_context(): Builds context from course and review embeddings for Q&A
+│     * build_compare_context(): Fetches data for comparing two professors
+│     * answer_general_question(): Generates responses for curriculum/QNA queries using LLM
+│     * compare_professors(): Generates comparison responses for two instructors
+│   Uses CourseContext, CourseRecommendationContext, ProfessorComparisonContext, etc.
+│   for structured data validation.
+│
+├── app/models/context_pydantic.py
+│   Pydantic models for type validation and data structure:
+│   - CourseContext: Validates course data structure
+│   - CourseRecommendationContext: Validates course recommendation data
+│   - ProfessorComparisonContext: Validates professor comparison data
+│   - ReviewContext: Validates review data structure
+│   - MiscellaneousInfoContext: Validates miscellaneous information
+│   Ensures data integrity and provides type hints throughout the application.
+│
+├── app/models/intructors.py (Note: typo in filename, should be instructors.py)
+│   Instructor model class:
+│   - Instructor class with static methods:
+│     * get_instructor_info(): Fetches instructor details (name, departments, courses)
+│     * get_courses_for_instructor(): Retrieves all courses taught by instructor
+│     * get_departments_for_instructor(): Retrieves all departments instructor belongs to
+│     * Additional helper methods for instructor-related database queries
+│
+├── app/models/reviews.py
+│   Review model class:
+│   - Reviews class with static methods:
+│     * get_user_past_reviews(): Fetches all reviews created by a specific user
+│     * get_reviews_by_instructor(): Retrieves all reviews for an instructor
+│     * create_review(): Inserts new review into database
+│     * update_review(): Updates existing review
+│     * delete_review(): Deletes review from database
+│     * generate_review_embedding(): Creates embedding for review text
+│     * Additional review-related database operations
+│
+├── app/models/user.py
+│   User model class:
+│   - User class with static methods:
+│     * create_user(): Inserts new user with hashed password
+│     * get_user_by_username(): Retrieves user information
+│     * validate_credentials(): Checks username/password for login
+│     * Additional user-related database operations
+│
+├── app/models/votes.py
+│   Vote model class:
+│   - Votes class with static methods:
+│     * get_vote_counts(): Returns upvote and downvote counts for a review
+│     * get_user_vote(): Checks if user has voted on a review
+│     * create_vote(): Inserts new vote
+│     * update_vote(): Changes vote type (upvote to downvote or vice versa)
+│     * delete_vote(): Removes vote
+│     * Additional vote-related database operations
+
+
+ROUTES SUBDIRECTORY (./app/routes/)
+====================================
+
+├── app/routes/__init__.py
+│   Package initialization file for routes module.
+│
+├── app/routes/api_routes.py
+│   Main routing configuration that maps URLs to controller functions:
+│
+│   Home and Search:
+│   - /: Renders index page
+│   - /search-page: Renders search interface
+│   - /search: Processes search queries
+│
+│   Authentication (handled via before_request):
+│   - load_logged_in_user(): Loads user from session before each request
+│
+│   Assistant:
+│   - GET /assistant: Renders AI assistant interface
+│   - POST /assistant/chat: Processes AI assistant queries
+│
+│   Instructor Reviews:
+│   - GET /instructor/<instructor_name>/reviews: Shows reviews for an instructor
+│   - POST /reviews/<review_id>/vote: Handles upvote/downvote on review
+│
+│   User Reviews:
+│   - GET /user_reviews: Shows logged-in user's past reviews
+│   - PATCH/PUT /user_reviews/<review_id>/edit: Edits user's review
+│   - DELETE /user_reviews/<review_id>/delete: Deletes user's review
+│
+│   Review Submission:
+│   - GET/POST /review/<instructor_first>/<instructor_last>: Review form and submission
+│   - GET /reviews: Views all reviews (testing endpoint)
+│
+│   All protected routes use @login_required decorator.
+
+
+UTILS SUBDIRECTORY (./app/utils/)
+==================================
+
+Contains utility functions and helper modules.
+
+├── app/utils/__init__.py
+│   Package initialization file for utils module.
+│
+├── app/utils/helper.py
+│   Core helper functions and classes:
+│   - login_required: Decorator to protect routes requiring authentication
+│   - execute_qry(): Generic database query execution helper for INSERT/UPDATE/DELETE/SELECT
+│     * Handles commits and rollbacks
+│     * Returns appropriate results based on query type
+│   - validate_instructor(): Checks if instructor exists in database
+│   - check_for_summary(): Determines if consensus summary needs updating
+│   - get_consensus_summary(): Retrieves cached consensus summary for instructor
+│   - update_summary_cache(): Updates consensus summary if 20+ new reviews exist
+│   - IntentClassifier class:
+│     * classify(): Analyzes user query to determine intent (compare/curriculum/qna)
+│     * Uses regex patterns and keyword matching
+│     * Detects professor names, comparison keywords, curriculum keywords, field indicators
+│
+├── app/utils/query_parser.py
+│   Text parsing utilities:
+│   - extract_courses_from_user_query(): Extracts course codes (e.g., CS5200) using regex
+│   - extract_two_prof_names(): Extracts two professor names from comparison queries
+│     * Handles "and" or "&" separators
+│     * Returns list of two names or None
+│
+├── app/utils/assistant_queries.json
+│   SQL queries used by the AI assistant for:
+│   - Fetching course information with embeddings
+│   - Retrieving review data for context building
+│   - Comparing professor statistics
+│   - Building curriculum recommendations
+│   Organized by query purpose for maintainability.
+│
+├── app/utils/helper_queries.json
+│   SQL queries for helper functions:
+│   - validate_instructor_query: Checks instructor existence
+│   - check_summary_query: Determines if summary update is needed
+│   - Additional utility queries used across controllers
+│
+├── app/utils/index_queries.json
+│   SQL queries for index/search functionality:
+│   - Search by professor name
+│   - Search by course number
+│   - Filter by department
+│   - Get department list
+│
+├── app/utils/instructor_queries.json
+│   SQL queries for instructor-related operations:
+│   - Get instructor details
+│   - Get instructor courses
+│   - Get instructor departments
+│   - Get instructor statistics
+│
+├── app/utils/prompts.json
+│   AI model prompts and templates:
+│   - system_prompt: System-level instructions for the LLM
+│   - comparison_prompt: Template for professor comparison responses
+│   - curriculum_prompt: Template for course recommendations
+│   - qna_prompt: Template for general Q&A responses
+│   Ensures consistent and high-quality AI responses.
+│
+├── app/utils/review_queries.json
+│   SQL queries for review operations:
+│   - Get reviews by instructor
+│   - Get user's past reviews
+│   - Insert new review
+│   - Update review
+│   - Delete review
+│   - Generate review embeddings
+│
+├── app/utils/summary_cache.json
+│   Cache file storing consensus summaries:
+│   - Structure: {"data": {"instructor_first_last": {"summary": "...", "last_timestamp": "..."}}}
+│   - Reduces AI processing by caching summaries
+│   - Updated only when 20+ new reviews exist
+│   - Stores last update timestamp for each instructor
+│
+├── app/utils/user_queries.json
+│   SQL queries for user operations:
+│   - Create user
+│   - Get user by username
+│   - Validate credentials
+│   - Update user information
+│
+├── app/utils/vote_queries.json
+│   SQL queries for voting operations:
+│   - Get vote counts for review
+│   - Get user's vote on review
+│   - Create new vote
+│   - Update vote type
+│   - Delete vote
+
+
+VIEW SUBDIRECTORY (./app/view/)
+================================
+
+Contains frontend templates and static files.
+
+STATIC FILES (./app/view/static/)
+----------------------------------
+
+├── app/view/static/style.css
+│   Main stylesheet for the application containing:
+│   - Global styles (colors, fonts, spacing)
+│   - Navigation bar styling
+│   - Form styles (login, register, review forms)
+│   - Card layouts for reviews and instructor profiles
+│   - Button styles (upvote, downvote, submit buttons)
+│   - Responsive design rules
+│   - Search interface styling
+│   - Assistant chat interface styling
+
+
+TEMPLATES (./app/view/templates/)
+----------------------------------
+
+All templates use Jinja2 templating engine and extend base.html.
+
+├── app/view/templates/base.html
+│   Base template that all other templates extend. Contains:
+│   - HTML boilerplate and meta tags
+│   - Navigation bar with logo, search, and user menu
+│   - Links to static CSS file
+│   - JavaScript includes
+│   - Flash message display area
+│   - Main content block that child templates override
+│   - Footer section
+│
+├── app/view/templates/index.html
+│   Home page template:
+│   - Welcome message and application description
+│   - Search bar for professors and courses
+│   - Department filter dropdown
+│   - Featured instructors or courses section
+│   - Quick links to popular features
+│
+├── app/view/templates/assistant.html
+│   AI assistant chat interface:
+│   - Chat message display area
+│   - Message input field
+│   - Send button
+│   - Intent selection buttons (compare, curriculum, general)
+│   - JavaScript for:
+│     * Sending POST requests to /assistant/chat
+│     * Displaying user and assistant messages
+│     * Handling intent hints
+│     * Real-time chat updates
+│
+├── app/view/templates/search.html
+│   Search results page:
+│   - Search query display
+│   - Filter controls (department, rating, etc.)
+│   - Results list showing:
+│     * Instructor names with links to their profiles
+│     * Course information
+│     * Average ratings
+│     * Number of reviews
+│   - Pagination controls
+│
+├── app/view/templates/review_form.html
+│   Review submission form:
+│   - Instructor name display
+│   - Course selection dropdown
+│   - Rating selector (1-5 stars)
+│   - Comment textarea
+│   - Submit button
+│   - Form validation JavaScript
+│   - Sends POST request to /review/<instructor_first>/<instructor_last>
+│
+├── app/view/templates/auth/login.html
+│   Login page template:
+│   - Username input field
+│   - Password input field
+│   - Login button
+│   - Link to registration page
+│   - Error message display
+│   - Form submission to /auth/login
+│
+├── app/view/templates/auth/register.html
+│   Registration page template:
+│   - Username input field
+│   - Password input field
+│   - Password confirmation field
+│   - School year dropdown
+│   - Register button
+│   - Link to login page
+│   - Form validation
+│   - Form submission to /auth/register
+│
+├── app/view/templates/reviews/professor_reviews.html
+│   Instructor profile and reviews page:
+│   - Instructor information card:
+│     * Name, departments, courses taught
+│     * Overall rating statistics
+│     * Consensus summary (AI-generated overview of all reviews)
+│   - Individual review cards showing:
+│     * Username, post time, last updated
+│     * Rating (stars)
+│     * Review comment
+│     * Upvote/downvote buttons with counts
+│     * Current user's vote highlighted
+│   - JavaScript for handling vote button clicks
+│   - Link to submit new review for this instructor
+│
+├── app/view/templates/reviews/pastreviews.html
+│   User's past reviews page:
+│   - List of all reviews created by logged-in user
+│   - Each review card shows:
+│     * Instructor name and course
+│     * Rating and comment
+│     * Post time and last updated
+│     * Edit button (opens inline editor)
+│     * Delete button (with confirmation)
+│   - JavaScript for:
+│     * Inline editing (PATCH/PUT to /user_reviews/<review_id>/edit)
+│     * Delete confirmation (DELETE to /user_reviews/<review_id>/delete)
+│     * Real-time updates after edit/delete
+
+
+DATA_JSON DIRECTORY (./data_json/)
+===================================
+
+Contains synthetic data used to populate the database.
+
+├── data_json/rtu_main_entities.json
+│   Main entity data including:
+│   - courses: Array of course objects (course_number, course_description)
+│   - departments: Array of department objects (department_name)
+│   - instructors: Array of instructor objects (first_name, last_name)
+│   - users: Array of user objects (username, password, school_year)
+│   All data is synthetically generated for testing purposes.
+│
+├── data_json/rtu_relationships.json
+│   Relationship data connecting entities:
+│   - course_sections: Maps courses to instructors (course_number, instructor_first, instructor_last)
+│   - course_to_department: Maps courses to departments
+│   - instructor_to_department: Maps instructors to departments
+│   - user_to_course: Maps users to enrolled courses
+│   Defines the many-to-many relationships in the database.
+
+REVIEWS SUBDIRECTORY (./data_json/reviews/)
+--------------------------------------------
+
+Contains review data split into batches for manageable file sizes.
+
+├── data_json/reviews/rtu_reviews_001_100.json
+├── data_json/reviews/rtu_reviews_101_200.json
+├── data_json/reviews/rtu_reviews_201_300.json
+├── data_json/reviews/rtu_reviews_301_400.json
+├── data_json/reviews/rtu_reviews_401_500.json
+├── data_json/reviews/rtu_reviews_501_600.json
+├── data_json/reviews/rtu_reviews_601_700.json
+├── data_json/reviews/rtu_reviews_701_800.json
+├── data_json/reviews/rtu_reviews_801_900.json
+│
+│   Each file contains 100 synthetic reviews with structure:
+│   {
+│     "batch_X": [
+│       {
+│         "instructor_name": "FirstName LastName",
+│         "username": "user123",
+│         "course_number": "CS5200",
+│         "rating": 4.5,
+│         "comment": "Review text...",
+│         "post_time": "2024-01-15T10:30:00",
+│         "last_updated_time": "2024-01-15T10:30:00"
+│       },
+│       ...
+│     ]
+│   }
+
+VOTES SUBDIRECTORY (./data_json/votes/)
+----------------------------------------
+
+Contains voting data split into batches.
+
+├── data_json/votes/votes_batch_1.json
+├── data_json/votes/votes_batch_2.json
+├── data_json/votes/votes_batch_3.json
+├── data_json/votes/votes_batch_4.json
+├── data_json/votes/votes_batch_5.json
+├── data_json/votes/votes_batch_6.json
+├── data_json/votes/votes_batch_7.json
+├── data_json/votes/votes_batch_8.json
+├── data_json/votes/votes_batch_9.json
+│
+│   Each file contains vote records with structure:
+│   {
+│     "batch_X": [
+│       {
+│         "vote_id": 1,
+│         "review_id": 123,
+│         "username": "user456",
+│         "vote_type": "upvote" or "downvote"
+│       },
+│       ...
+│     ]
+│   }
+
+
+EXCLUDED DIRECTORIES/FILES (Not in version control)
+====================================================
+
+├── venv/ (or .venv/)
+│   Python virtual environment containing all installed dependencies.
+│   Created using "python -m venv venv" and activated before running the application.
+│   Not tracked in git due to large size and machine-specific paths.
+│
+├── __pycache__/
+│   Python bytecode cache directories created automatically by Python interpreter.
+│   Contains .pyc files for faster module loading.
+│   Not tracked in git.
+│
+├── .idea/
+│   PyCharm IDE configuration directory.
+│   Contains IDE-specific settings, workspace files, and project configurations.
+│   Not tracked in git.
+│
+├── .DS_Store
+│   macOS system file storing folder view options.
+│   Not tracked in git.
+
+
+DATABASE SCHEMA (PostgreSQL)
+=============================
+
+The application uses 11 tables:
+
+1. users
+   - username (PK)
+   - password (hashed)
+   - school_year
+
+2. instructors
+   - instructor_id (PK, auto-increment)
+   - first_name
+   - last_name
+   - UNIQUE(first_name, last_name)
+
+3. courses
+   - course_number (PK, e.g., "CS5200")
+   - course_description
+
+4. departments
+   - department_id (PK, auto-increment)
+   - department_name (UNIQUE)
+
+5. review
+   - review_id (PK, auto-increment)
+   - comment (TEXT)
+   - instructor_first
+   - instructor_last
+   - username (FK to users)
+   - rating (DECIMAL)
+   - post_time (TIMESTAMP)
+   - last_updated (TIMESTAMP)
+   - course_number (FK to courses)
+   - FK to instructors(first_name, last_name)
+
+6. votes
+   - vote_id (PK)
+   - review_id (FK to review)
+   - username (FK to users)
+   - vote_type ('upvote' or 'downvote')
+   - UNIQUE(review_id, username)
+
+7. course_section
+   - section_id (PK, auto-increment)
+   - course_number (FK to courses)
+   - instructor_first
+   - instructor_last
+   - FK to instructors(first_name, last_name)
+
+8. course_to_department
+   - id (PK, auto-increment)
+   - course_number (FK to courses)
+   - department_name (FK to departments)
+
+9. instructor_to_department
+   - id (PK, auto-increment)
+   - instructor_first
+   - instructor_last
+   - department_name (FK to departments)
+   - FK to instructors(first_name, last_name)
+
+10. user_to_course
+    - id (PK, auto-increment)
+    - username (FK to users)
+    - course_number (FK to courses)
+
+11. course_embeddings
+    - id (PK, auto-increment)
+    - course_id (FK to courses)
+    - embedding (VECTOR using pgvector extension)
+
+12. review_embeddings
+    - id (PK, auto-increment)
+    - review_id (FK to review)
+    - embedding (VECTOR using pgvector extension)
+
+
+TECHNOLOGY STACK
+================
+
+Backend:
+- Python 3.11+
+- Flask 3.1.2 (Web framework)
+- PostgreSQL with pgvector extension (Database with vector operations)
+- psycopg2-binary 2.9.11 (PostgreSQL adapter)
+
+AI/ML:
+- TinyLlama-1.1B-Chat-v1.0 (Text generation for assistant responses)
+- Gemma embeddinggemma-300m (Generating embeddings for semantic search)
+- sentence-transformers 5.1.2 (Embedding utilities)
+- transformers 4.57.1 (Hugging Face transformers)
+- torch 2.9.1 (PyTorch for model inference)
+
+Frontend:
+- HTML5/CSS3
+- Jinja2 templates
+- Vanilla JavaScript (for interactive elements)
+
+Deployment:
+- Docker (containerization)
+- Vercel (hosting platform)
+- AWS RDS (database hosting - mentioned in README but migrated to Neon)
+
+Development Tools:
+- python-dotenv (environment management)
+- pydantic (data validation)
+- tqdm (progress bars during data population)
+
+
+APPLICATION WORKFLOW
+====================
+
+1. User Registration/Login:
+   - User accesses /auth/register or /auth/login
+   - Credentials validated against users table
+   - Session created with user_id on successful login
+
+2. Search for Instructor/Course:
+   - User enters search query on index page
+   - Search controller queries instructors/courses tables with optional department filter
+   - Results displayed with links to instructor profiles
+
+3. View Instructor Profile:
+   - User clicks on instructor name
+   - System fetches instructor details, courses, departments, and all reviews
+   - Consensus summary retrieved from cache or generated if stale
+   - Vote information fetched for each review
+   - Profile page rendered with all information
+
+4. Submit Review:
+   - User navigates to review form for specific instructor
+   - Selects course from dropdown (courses taught by instructor)
+   - Enters rating and comment
+   - Review inserted into database
+   - Review embedding generated and stored
+   - User redirected to instructor profile
+
+5. Vote on Review:
+   - User clicks upvote/downvote button on a review
+   - AJAX request sent to /reviews/<review_id>/vote
+   - System checks for existing vote:
+     * No existing vote: Create new vote
+     * Same vote: Delete vote (toggle off)
+     * Different vote: Update vote type
+   - Updated vote counts returned and displayed
+
+6. AI Assistant Interaction:
+   - User enters query in assistant interface
+   - Intent classifier determines query type:
+     * COMPARE: Comparing two professors
+     * CURRICULUM: Course recommendations
+     * QNA: General questions about courses/reviews
+   - Context builder retrieves relevant data:
+     * Uses vector similarity search on embeddings
+     * Fetches related course descriptions and reviews
+   - LLM generates response using context
+   - Response displayed in chat interface
+
+7. Consensus Summary Generation:
+   - Triggered when instructor profile is viewed
+   - System checks if 20+ new reviews since last update
+   - If yes:
+     * Fetches all reviews for instructor
+     * Sends to LLM with summarization prompt
+     * Stores summary in summary_cache.json with timestamp
+   - If no: Returns cached summary
+
+
+SECURITY FEATURES
+=================
+
+- Password hashing using werkzeug.security
+- Session-based authentication with secure cookie settings
+- CSRF protection through Flask session management
+- SQL injection prevention using parameterized queries
+- @login_required decorator on protected routes
+- CORS configured for specific origins only
+- Environment variables for sensitive credentials
+- .env file excluded from version control
+
+
+API ENDPOINTS SUMMARY
+=====================
+
+Public (No auth required):
+- GET /auth/register - Registration form
+- POST /auth/register - Create account
+- GET /auth/login - Login form
+- POST /auth/login - Authenticate user
+
+Protected (Require authentication):
+- GET / - Home page
+- GET /search-page - Search interface
+- GET /search - Search query
+- GET /assistant - AI assistant interface
+- POST /assistant/chat - AI query processing
+- GET /instructor/<name>/reviews - Instructor profile
+- POST /reviews/<id>/vote - Vote on review
+- GET /user_reviews - User's past reviews
+- PATCH/PUT /user_reviews/<id>/edit - Edit review
+- DELETE /user_reviews/<id>/delete - Delete review
+- GET/POST /review/<first>/<last> - Review form/submission
+- GET /reviews - View all reviews (testing)
+- GET /auth/logout - Logout
+
+============================
+END OF STRUCTURE DOCUMENTATION
+============================

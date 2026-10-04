@@ -1,0 +1,128 @@
+from ..controllers import vote_controller, review_controller, assistant_controller, index_controller
+from ..utils.helper import login_required, execute_qry
+from flask import (g, session)
+
+
+from .. import app
+from app.config.db_connection import connect
+
+
+
+#---- Reviews forms ----#
+@app.route('/')
+def index():
+    return index_controller.index()
+
+#--- Check if user is logged in ----#
+@app.before_request
+def load_logged_in_user():
+    user_id = session.get('user_id')
+    if user_id is None:
+        g.user = None
+    else:
+        q = f'SELECT * FROM users WHERE username = %s'
+        result = execute_qry(q, (user_id,))
+        g.user = result[0] if result else None
+
+#---- endpoints for assistant ----#
+
+@app.route('/assistant', methods=['GET'])
+@login_required
+def get_assistant():
+    return assistant_controller.get_assistant()
+
+@app.route('/assistant/chat', methods=['POST'])
+@login_required
+def assistant_chat():
+    conn = connect()
+    return assistant_controller.answer_question(conn)
+
+
+#---- endpoints for instructor view ----#
+@app.route("/instructor/<instructor_name>/reviews", methods=["GET"])
+@login_required
+def instructor_review(instructor_name):
+    """
+    Endpoint for getting reviews for a given instructor
+
+    """
+    conn = connect()
+    return review_controller.get_reviews_for_instructor(conn, instructor_name)
+
+@app.route("/reviews/<int:review_id>/vote", methods=["POST"])
+@login_required
+def handle_votes(review_id):
+    """
+        Endpoint for creating/updating/deleting a vote on a review
+
+    """
+    conn = connect()
+    return vote_controller.handle_votes(conn, review_id)
+
+
+#---- Endpoints for user reviews -----#
+@app.route("/user_reviews")
+@login_required
+def get_user_reviews():
+    """
+        Endpoint for getting reviews for a given user
+    """
+    conn = connect()
+    return review_controller.get_user_reviews(conn)
+
+@app.route("/user_reviews/<int:review_id>/edit", methods=["PATCH", "PUT"])
+@login_required
+def edit_reviews(review_id):
+    """
+        Endpoint for editing a past review for a given review_id
+
+    """
+    conn = connect()
+    return review_controller.edit_review(review_id, conn)
+
+@app.route("/user_reviews/<int:review_id>/delete", methods=["DELETE"])
+@login_required
+def delete_reviews(review_id):
+    """
+        Endpoint for editing a past review for a given review_id
+
+    """
+    conn = connect()
+    return review_controller.delete_review(review_id, conn)
+
+
+
+#---- API endpoints for posting reviews ----#
+@app.route('/review/<instructor_first>/<instructor_last>', methods=['GET', 'POST'])
+@login_required
+def review_form(instructor_first,instructor_last):
+    """
+        review form for a specific professor
+    """
+    return review_controller.review_form(instructor_first,instructor_last)
+
+@app.route('/reviews')
+@login_required
+def view_reviews():
+    """
+        Display all submitted reviews (optional - for testing)
+    """
+    return review_controller.view_reviews()
+
+#---- search reviews ----#
+@app.route("/search-page")
+@login_required
+def search_page():
+    """
+        Render the search page
+    """
+    return index_controller.search_page()
+
+@app.route('/search')
+@login_required
+def search():
+    """
+        Endpoint for searching all professors
+    """
+    return index_controller.search()
+

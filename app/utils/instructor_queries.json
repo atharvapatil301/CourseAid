@@ -1,0 +1,6 @@
+{
+  "avg_rating_query": " select round(avg(rating), 2) \n                    from review \n                    where instructor_first = %s \n                      and instructor_last = %s ",
+  "instructor_courses_query":"select course_number \n                                      from course_section \n                                      where instructor_first = %s \n                                        and instructor_last = %s ",
+  "instructor_departments_query": "select department_name \n                                          from instructor_to_department \n                                          where instructor_first = %s \n                                            and instructor_last = %s",
+  "instructor_reviews_query": " select comment \n                      from review \n                      where instructor_first = %s \n                        and instructor_last = %s "
+}

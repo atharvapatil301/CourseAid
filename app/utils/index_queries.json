@@ -1,0 +1,6 @@
+{
+  "department_name_query": "SELECT department_name FROM departments",
+  "procedure_call_1": "SELECT * FROM search_prof_by_course(%s, %s, %s)",
+  "procedure_call_2": "SELECT * FROM search_prof_by_name(%s, %s, %s)"
+
+}
