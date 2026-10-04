@@ -7,13 +7,9 @@ from ..config import db_connection
 import re
 from datetime import datetime, timezone
 
-<<<<<<< HEAD
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 with open(os.path.join(current_dir, "helper_queries.json"), "r") as file:
-=======
-with open("./app/utils/helper_queries.json", "r") as file:
->>>>>>> a8e0d50e58841acb595f9e9cda69e72190832a33
     queries = json.load(file)
 
 def login_required(f):
