@@ -41,7 +41,7 @@ class AssistantRoles:
 
         self.model = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
         self.system_prompt=self.prompts["system_prompt"]
-        self.embedding_model = SentenceTransformer("google/embeddinggemma-300m")
+        self.embedding_model = SentenceTransformer("google/embeddinggemma-300m", token=os.environ["HUGGINGFACE_HUB_TOKEN"])
         self.template = ChatPromptTemplate.from_messages([
             ('system', '{self.system_prompt}'),
             ('human', '{question}')
