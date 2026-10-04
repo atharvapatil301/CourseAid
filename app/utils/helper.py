@@ -140,11 +140,7 @@ class IntentClassifier:
         query_lower = user_query.lower()
 
 
-<<<<<<< HEAD
         pattern = r'(?:professors| Professor |Prof\. |Prof |Dr\. |Dr )?[A-Z][a-z]+\s+[A-Z][a-z]+'
-=======
-        pattern = r'(?:Professor |Prof\. |Prof |Dr\. |Dr )?[A-Z][a-z]+\s+[A-Z][a-z]+'
->>>>>>> a8e0d50e58841acb595f9e9cda69e72190832a33
         professor_names = re.findall(pattern, user_query)
 
         comparison_keywords = ['compare', 'vs', 'versus', 'between', 'difference']
