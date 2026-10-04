@@ -8,7 +8,7 @@ app_port: 7860
 pinned: false
 ---
 
-# CourseAid - A better RateMyProfessor
+# CourseAid: A better RateMyProfessor
 
 ## Introduction
 
