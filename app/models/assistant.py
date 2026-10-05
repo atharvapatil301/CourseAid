@@ -2,17 +2,13 @@ import psycopg2
 from tqdm import tqdm
 from ..models.intructors import Instructor
 from ..config.db_connection import connect
-from ..utils.helper import validate_instructor
 from ..utils.query_parser import  extract_two_prof_names
 from sentence_transformers import SentenceTransformer
 from ..models.context_pydantic import CourseContext, CourseRecommendationContext, ProfessorComparisonContext, ReviewContext, MiscellaneousInfoContext
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import chain
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from dotenv import load_dotenv
 import json
-import torch
-import re
 import os
 
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -42,10 +38,12 @@ class AssistantRoles:
         self.model = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
         self.system_prompt=self.prompts["system_prompt"]
         self.embedding_model = SentenceTransformer("google/embeddinggemma-300m", token=os.environ["HUGGINGFACE_HUB_TOKEN"])
+       
         self.template = ChatPromptTemplate.from_messages([
             ('system', self.system_prompt),
-            ('placeholder', '{question}')
+            MessagesPlaceholder('question'),
         ])
+        self.chatbot = self.template | self.model
 
 
 
@@ -101,21 +99,15 @@ class AssistantRoles:
         except psycopg2.ProgrammingError as e:
             cursor.close()
             print(f"error: {e}")
-            return None, None
+            return None, None, None, None
 
-    @chain
-    async def chatbot(self, question):
-
-        prompt = await self.template.ainvoke(question)
-
-        return await self.model.ainvoke(prompt)
 
     def create_summary_prompt(self, contents: list[str]):
         messages = []
 
         messages.append(self.prompts["summary_prompt"])
-        for content in contents[0]:
-            messages.append(content)
+        for row in contents:
+            messages.append(row[0])
 
         return messages
 
