@@ -7,7 +7,9 @@ from sentence_transformers import SentenceTransformer
 from ..models.context_pydantic import CourseContext, CourseRecommendationContext, ProfessorComparisonContext, ReviewContext, MiscellaneousInfoContext
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
 from dotenv import load_dotenv
+import re
 import json
 import os
 
@@ -43,7 +45,7 @@ class AssistantRoles:
             ('system', self.system_prompt),
             MessagesPlaceholder('question'),
         ])
-        self.chatbot = self.template | self.model
+        self.chatbot = self.template | self.model | StrOutputParser()
 
 
 
@@ -164,9 +166,20 @@ class AssistantRoles:
 
     async def QnA(self, cursor, user_query: str):
 
-        relevant_reviews_rows = self.get_database_results_for_relevant_reviews(cursor, user_query)
+        codes = re.findall(r"\b([A-Za-z]{2,4})\s?(\d{4})\b", user_query)
 
-        relevant_courses_rows = self.get_database_results_for_curriculum(cursor, user_query)
+        if codes:
+            code = f"{codes[0][0].upper()}{codes[0][1]}"
+            cursor.execute(self.assistant_queries["course_by_code_query"], (code,))
+            relevant_courses_rows = cursor.fetchall()
+            cursor.execute(self.assistant_queries["reviews_by_course_query"], (code,))
+            relevant_reviews_rows = cursor.fetchall()
+
+        else:
+
+            relevant_reviews_rows = self.get_database_results_for_relevant_reviews(cursor, user_query)
+
+            relevant_courses_rows = self.get_database_results_for_curriculum(cursor, user_query)
 
         if not relevant_reviews_rows:
             message = "no reviews yet"
@@ -220,11 +233,11 @@ class AssistantRoles:
         # prof1_fname, prof1_lname = validate_instructor(cursor, prof_names[0].title())
         # prof2_fname, prof2_lname = validate_instructor(cursor, prof_names[1].title())
 
-        prof1_fname = prof_names[0].split()[0]
-        prof1_lname = prof_names[0].split()[1]
+        prof1_fname = prof_names[0].split()[0].title()
+        prof1_lname = prof_names[0].split()[1].title()
 
-        prof2_fname = prof_names[1].split()[0]
-        prof2_lname = prof_names[1].split()[1]
+        prof2_fname = prof_names[1].split()[0].title()
+        prof2_lname = prof_names[1].split()[1].title()
 
 
         print(prof1_fname, prof1_lname)

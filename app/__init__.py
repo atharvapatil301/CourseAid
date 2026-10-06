@@ -17,10 +17,13 @@ app = Flask(
 
 app.secret_key = os.getenv("SECRET_KEY")
 
+
+IS_SPACE = os.getenv("SPACE_ID") is not None
+
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=IS_SPACE,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SAMESITE="None" if IS_SPACE else "Lax",
 )
 
 CORS(

@@ -1,11 +1,19 @@
 import os
 from flask import request, jsonify, render_template
 from ..models.assistant import AssistantRoles
-import asyncio
+import asyncio, threading
 from ..utils.helper import IntentClassifier
 
 
 assistant_roles = AssistantRoles()
+
+## To prevent the ChatGooggleGenerativeAI client from reusing or closing the connections on a loop thats already closed by _run_async()
+_loop = asyncio.new_event_loop()
+threading.Thread(target=_loop.run_forever, daemon=True).start() 
+
+def _run_async(coro):
+    return asyncio.run_coroutine_threadsafe(coro, _loop).result()
+
 
 def get_assistant():
 
@@ -53,15 +61,15 @@ def answer_question(conn):
 
         if intent == 'compare':
             print("[ROUTING TO]: compare_two_professors")
-            response = asyncio.run(assistant_roles.compare_two_professors(cursor,user_message))
+            response = _run_async(assistant_roles.compare_two_professors(cursor,user_message))
 
         elif intent == 'curriculum':
             print("[ROUTING TO]: recommend_curriculum")
-            response = asyncio.run(assistant_roles.recommend_curriculum(cursor,user_message))
+            response = _run_async(assistant_roles.recommend_curriculum(cursor,user_message))
 
         else:
             print("[ROUTING TO]: QnA")
-            response = asyncio.run(assistant_roles.QnA(cursor,user_message))
+            response = _run_async(assistant_roles.QnA(cursor,user_message))
 
 
         return jsonify({

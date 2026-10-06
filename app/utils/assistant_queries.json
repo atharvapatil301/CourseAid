@@ -6,5 +6,8 @@
 
   "prof_all_reviews_query": "SELECT r.instructor_first,\n                                  r.instructor_last,\n                                  r.course_number,\n                                  r.comment\n                           FROM review r\n                           WHERE r.instructor_first = %s\n                             AND r.instructor_last = %s\n                           ORDER BY r.last_updated DESC limit 20",
 
-  "prof_course_info_query": "select s.course_number, c.course_description from \n\tcourse_section as s join courses as c on\n\t\ts.course_number=c.course_number where\n\t\t\ts.instructor_first= %s and s.instructor_last= %s "
+  "prof_course_info_query": "select s.course_number, c.course_description from \n\tcourse_section as s join courses as c on\n\t\ts.course_number=c.course_number where\n\t\t\ts.instructor_first= %s and s.instructor_last= %s ",
+  "course_by_code_query": "SELECT c.course_number, c.course_description FROM courses c WHERE UPPER(REPLACE(c.course_number, ' ', '')) = %s",
+
+  "reviews_by_course_query": "SELECT r.instructor_first, r.instructor_last, r.course_number, r.comment FROM review r WHERE UPPER(REPLACE(r.course_number, ' ', '')) = %s ORDER BY r.last_updated DESC LIMIT 20"
 }
